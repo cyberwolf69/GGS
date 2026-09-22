@@ -1,0 +1,8 @@
+requests>=2.31,<3
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+websocket-client>=1.8,<2
+certifi>=2024.8
+PyYAML>=6,<7
+polymarket-client>=0.10,<0.11
+eth-account>=0.13,<1

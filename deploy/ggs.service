@@ -1,0 +1,26 @@
+[Unit]
+Description=GGS — Ganteng-Ganteng Signature
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# CHANGE THESE TWO VALUES to your VPS user and cloned GGS path.
+User=YOUR_VPS_USER
+WorkingDirectory=/opt/GGS
+Environment=GGS_ROOT=/opt/GGS
+ExecStart=/opt/GGS/deploy/run-vps.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillMode=control-group
+
+# Basic hardening. GGS still needs outbound network access for Polymarket/Telegram.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/GGS/runtime
+
+[Install]
+WantedBy=multi-user.target

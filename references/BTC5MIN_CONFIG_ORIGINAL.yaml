@@ -1,0 +1,85 @@
+mode: PAPER_TRADING  # PAPER_TRADING | APPROVAL_REQUIRED | REAL_AUTO (do not enable)
+asset: BTC
+window_seconds: 300
+series_slug: btc-up-or-down-5m
+slug_prefix: btc-updown-5m-
+
+# Settlement. Never hardcode lookback in code; this is only a fallback warning.
+assume_twap: true
+fallback_twap_lookback_seconds: 60
+require_live_crypto_market_config: true
+
+endpoints:
+  gamma: https://gamma-api.polymarket.com
+  clob: https://clob.polymarket.com
+  clob_ws: wss://ws-subscriptions-clob.polymarket.com/ws/market
+  rtds: wss://ws-live-data.polymarket.com
+
+rtds_topics:
+  twap_30: crypto_prices_twap_thirty
+  twap_60: crypto_prices_twap_sixty
+  chainlink_spot: crypto_prices_chainlink
+  binance_proxy: crypto_prices
+
+fees:
+  category: crypto
+  taker_fee_rate: 0.07
+  maker_fee_rate: 0.0
+  # fee = shares * taker_fee_rate * p * (1-p)
+
+risk:
+  max_risk_per_market_usd: 10.0
+  max_daily_loss_usd: 50.0
+  max_consecutive_losses: 5
+  max_total_exposure_usd: 30.0
+  min_edge: 0.04
+  min_confidence: 65
+  min_liquidity_shares: 50.0
+  max_spread: 0.04
+  max_allowed_latency_ms: 400
+  max_data_age_ms: 1500
+  min_seconds_remaining: 8
+  max_seconds_remaining_for_entry: 180
+  min_seconds_remaining_for_entry: 20
+  kelly_fraction: 0.25
+  martingale: false
+
+model:
+  family: diffusion_twap  # MVP baseline
+  vol_lookback_windows: 48
+  vol_shrinkage: 0.5
+  min_sigma_bps_per_sqrt_sec: 0.4
+  max_sigma_bps_per_sqrt_sec: 8.0
+  uncertainty_k: 1.0
+  min_uncertainty_buffer: 0.02
+  calibration_error_prior: 0.02
+
+execution:
+  default_style: TAKER_LIMIT  # paper assumes hit ask + modeled slippage
+  post_only_preferred: true
+  allow_taker_if_net_edge_covers_fee: true
+  slippage_bps_buffer: 20
+  paper_fill_model: hit_ask_then_slip
+
+no_trade:
+  skip_if_priced_efficiently: true
+  skip_if_ws_gap: true
+  skip_if_missing_open_twap: true
+  skip_extreme_vol_z: 4.0
+  skip_last_seconds: 5
+
+paper_trading:
+  record_all_windows: true
+  record_no_trade: true
+  forbid_post_resolution_edits: true
+
+performance_memory:
+  enabled: true
+  override_current_evidence: false
+  buckets:
+    - side
+    - seconds_remaining_bucket
+    - vol_regime
+    - net_edge_bucket
+    - confidence_bucket
+    - strategy_family

@@ -1,0 +1,72 @@
+name: GGS
+full_name: Ganteng-Ganteng Signature
+mode: PAPER_TRADING
+asset: BTC
+window_seconds: 300
+series_slug: btc-up-or-down-5m
+slug_prefix: btc-updown-5m-
+
+server:
+  host: 127.0.0.1
+  port: 6969
+  refresh_ms: 500
+
+account:
+  starting_balance: 60.0
+  stake_usd: 6.0
+  max_positions_per_market: 1
+
+fusion:
+  min_payout_multiple: 1.50
+  max_payout_multiple: 1.80
+  min_entry_price: 0.5555556
+  max_entry_price: 0.6666667
+  min_net_edge: 0.04
+  min_confidence_pct: 68.0
+  adaptive_quality_gate: true
+  confidence_150_159: 73.0
+  confidence_160_169: 70.0
+  confidence_170_180: 68.0
+  min_momentum_score: 55.0
+  repo_threshold_reference: 0.70
+  repo_btc_move_usd_reference: 70.0
+  repo_entry_target_seconds_left: 120.0
+  repo_entry_tolerance_seconds: 90.0
+
+market:
+  max_spread: 0.04
+  max_data_age_ms: 1500
+  max_latency_ms: 400
+  min_seconds_remaining: 20
+  max_seconds_remaining: 180
+  min_liquidity_shares: 5.0
+
+model:
+  family: diffusion_twap
+  vol_lookback_seconds: 90
+  vol_shrinkage: 0.50
+  min_sigma_bps_per_sqrt_sec: 0.4
+  max_sigma_bps_per_sqrt_sec: 8.0
+  min_uncertainty_buffer: 0.02
+  calibration_error_prior: 0.02
+  uncertainty_k: 1.0
+
+costs:
+  taker_fee_rate: 0.07
+  slippage_bps_buffer: 20
+  latency_edge_buffer_max: 0.01
+
+execution:
+  hold_to_resolution: true
+  stop_loss: false
+  early_exit: false
+  martingale: false
+
+endpoints:
+  gamma: https://gamma-api.polymarket.com
+  clob: https://clob.polymarket.com
+  rtds: wss://ws-live-data.polymarket.com
+
+rtds_topics:
+  twap_30: crypto_prices_twap_thirty
+  twap_60: crypto_prices_twap_sixty

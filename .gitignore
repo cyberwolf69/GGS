@@ -1,0 +1,48 @@
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+secrets/
+keystore/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime / local state
+runtime/
+*.log
+*.pid
+*.lock
+*.db
+*.sqlite
+*.sqlite3
+
+# Telegram local state
+telegram_session.json
+telegram_offset.json
+
+# Build / archives / temp
+dist/
+build/
+tmp/
+*.zip
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~

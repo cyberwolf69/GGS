@@ -1,0 +1,25 @@
+name: GGS
+full_name: Ganteng-Ganteng Signature
+asset: BTC
+window_seconds: 300
+series_slug: btc-up-or-down-5m
+
+# GGS uses the same strategy core for PAPER and LIVE.
+# Strategy thresholds are defined in config/paper.yaml and runtime/settings.json.
+# Real-order permission remains an environment safety gate.
+server:
+  host: 127.0.0.1
+  port: 6969
+
+strategy:
+  min_payout_multiple: 1.50
+  max_payout_multiple: 1.80
+  adaptive_quality_gate: true
+
+execution:
+  live_enabled_env: GGS_LIVE_ENABLED
+  withdrawals_enabled_env: GGS_LIVE_WITHDRAWALS_ENABLED
+  order_type: FAK
+  price_protection: max_price
+  max_positions_per_market: 1
+  hold_to_resolution: true
