@@ -13,184 +13,230 @@
 
 GGS combines probability modeling, momentum context, cost-aware edge, payout filtering, market-quality guards, Telegram owner control, and a real-time dashboard in one codebase.
 
-**Powered by web3rai**
+
 
 ---
 
 ## Overview
 
-GGS evaluates Polymarket **BTC 5-Minute UP / DOWN** markets using multiple independent layers before an entry is allowed.
-
 ```text
 BTC Reference Feed
-        |
-        v
+        │
+        ▼
 Active BTC 5m Market
-        |
-        v
+        │
+        ▼
 Price To Beat Source Lock
-        |
-        +-------------------------+
-        |                         |
-        v                         v
-Probability Engine        Momentum / Skew Engine
-        |                         |
-        +------------+------------+
-                     |
-                     v
-              Net Edge Engine
-                     |
-                     v
-          Payout Gate 1.50–1.80x
-                     |
-                     v
-      Spread / Freshness / Latency Guards
-                     |
-                     v
-               Decision Engine
-                     |
-       +-------------+-------------+
-       |             |             |
-       v             v             v
-    BUY UP        BUY DOWN      NO TRADE
-       |             |
-       +------+------+ 
-              |
-      +-------+------------------+
-      |                          |
-      v                          v
- PAPER Executor             LIVE Executor
-                             |
-                   READ ONLY / SHADOW / REAL
+        │
+        ▼
+Probability Engine
+        │
+        ├──────────────► Momentum / Skew Engine
+        │
+        ▼
+Net Edge Engine
+        │
+        ▼
+Payout Gate
+   1.50x — 1.80x
+        │
+        ▼
+Spread / Freshness / Latency Guards
+        │
+        ▼
+Decision Engine
+        │
+        ├──────────────► BUY UP
+        ├──────────────► BUY DOWN
+        └──────────────► NO TRADE
+                              │
+                ┌─────────────┴─────────────┐
+                ▼                           ▼
+          PAPER Executor             LIVE Executor
+                │                           │
+                ▼                           ▼
+              PAPER              READ ONLY / SHADOW / REAL
 ```
 
-`NO_TRADE` is a valid decision. Missing, stale, low-quality, or economically unattractive setups are rejected rather than guessed.
+`NO_TRADE` is a valid decision.
+
+Missing, stale, low-quality, or economically unattractive setups are rejected instead of being forced into a trade.
 
 ---
 
 ## Current Market Profile
 
-| Setting | Default |
-| --- | ---: |
+| Parameter | Value |
+|---|---|
 | Asset | BTC |
 | Market | UP / DOWN |
 | Duration | 5 minutes |
-| Minimum effective payout | **1.50x** |
-| Maximum effective payout | **1.80x** |
-| Base minimum net edge | **4%** |
-| Adaptive confidence gate | **Enabled** |
-| Max active position | **1 / market** |
-| Exit model | **Hold to resolution** |
-| Martingale | **OFF** |
-
-The payout gate uses estimated effective cost rather than only the raw displayed price. GGS also applies a stricter confidence requirement around lower-payout entries.
+| Minimum effective payout | 1.50x |
+| Maximum payout | 1.80x |
+| Base minimum net edge | 4% |
+| Adaptive confidence | Enabled |
+| Maximum active position | 1 / market |
+| Exit | Hold to resolution |
+| Martingale | OFF |
 
 ---
 
 ## Features
 
 | Feature | Description |
-| --- | --- |
-| Market Discovery | Tracks the current BTC 5-minute Polymarket market. |
-| Price To Beat Lock | Keeps entry and resolution context aligned to the same round. |
-| Reference Price Engine | Normalizes and validates BTC reference data. |
-| Probability Engine | Estimates directional probability using price distance, volatility, and time remaining. |
-| Momentum Engine | Adds BTC movement, stronger-side, timing, and market-skew context. |
-| Net Edge Engine | Evaluates probability edge after modeled costs and latency buffers. |
-| Adaptive Payout Gate | Accepts only effective payout in the configured **1.50x–1.80x** range. |
-| Risk Guards | Spread, liquidity, freshness, latency, balance, pause, and position limits. |
-| PAPER Mode | Simulated entries and hold-to-resolution accounting. |
-| LIVE READ-ONLY | Connects MetaMask/Polymarket without submitting orders. |
-| LIVE SHADOW | Produces real-market order previews but sends nothing. |
-| LIVE REAL | Price-protected, gated order submission using the official Polymarket Python SDK. |
-| Telegram Control | Monitoring, mode switching, settings, pause/resume, and gated withdrawal. |
-| Dashboard | Terminal-style monitoring at `127.0.0.1:6969`. |
-| Persistent Settings | Runtime operator settings survive restart. |
-| Cross-platform Launchers | macOS/Linux, Windows PowerShell, and Linux VPS/systemd. |
+|---|---|
+| Market Discovery | Finds the active BTC 5-minute prediction market |
+| Price To Beat Lock | Locks the correct reference source for the active market |
+| Reference Price Engine | Tracks the BTC reference price used by the strategy |
+| Probability Engine | Estimates UP / DOWN probability |
+| Momentum Engine | Uses momentum and market skew context |
+| Net Edge Engine | Evaluates economic edge after cost considerations |
+| Adaptive Payout Gate | Filters opportunities within the configured payout range |
+| Risk Guards | Spread, freshness, latency, liquidity, and market-quality protection |
+| PAPER | Simulated execution without real orders |
+| LIVE READ-ONLY | Connects and checks live wallet readiness without entering |
+| LIVE SHADOW | Previews live execution without sending an order |
+| LIVE REAL | Protected real execution behind explicit environment gates |
+| Telegram Control | Remote owner-only control |
+| Dashboard | Real-time market, signal, position, and execution monitoring |
+| Persistent Settings | Stores runtime trading settings |
+| Cross-platform Launchers | macOS, Linux, and Windows support |
 
 ---
 
 ## PAPER / LIVE Modes
 
-GGS uses **one strategy core**. PAPER and LIVE do not have separate signal logic.
-
-```text
-Decision Engine
-      |
-      +--------------------------+
-      |                          |
-      v                          v
-PAPER Executor              LIVE Executor
-      |                          |
-Simulated fills      MetaMask + Polymarket SDK
-```
-
-Available operator modes:
-
-```text
-PAPER
-LIVE_READONLY
-LIVE_SHADOW
-LIVE
-```
+GGS supports four runtime modes:
 
 ### PAPER
 
-No real orders or withdrawals.
+Fully simulated trading.
+
+- No real orders
+- No real withdrawals
+- Uses the same strategy core
+- Suitable for development and validation
 
 ### LIVE READ-ONLY
 
-Connects the configured MetaMask EOA and authenticated Polymarket client, then reads wallet/collateral readiness. No entry is submitted.
+Connects to the configured MetaMask EOA and authenticated Polymarket client.
+
+- Reads wallet status
+- Reads collateral readiness
+- Checks live connectivity
+- Does not enter positions
+- Does not send trading orders
 
 ### LIVE SHADOW
 
-The real market decision is converted into an order preview containing side, token, stake, and maximum accepted price. The order is **not sent**.
+Uses the live market environment while keeping execution simulated.
+
+- Reads real market conditions
+- Builds the real order decision
+- Previews the intended order
+- Does not send the order
 
 ### LIVE REAL
 
-Real entry submission is available only when:
+Real trading execution.
 
-```env
+Real entries are only permitted when:
+
+```text
 GGS_LIVE_ENABLED=true
 ```
 
-The live BUY uses a **FAK market order with `max_spend` and `max_price` protection**. GGS therefore does not intentionally chase an outcome price above the decision price.
+The execution path uses:
 
-LIVE remains fail-closed when the wallet, signer, CLOB connection, balance, or other required checks are not ready.
+- FAK market orders
+- `max_spend` protection
+- `max_price` protection
+- Wallet/signer validation
+- Collateral and readiness checks
+- Fail-closed behavior when required conditions are not ready
+
+---
+
+## Changing Mode
+
+The runtime mode can be changed from Telegram using:
+
+```text
+/mode
+```
+
+Available modes:
+
+```text
+PAPER
+LIVE READ-ONLY
+LIVE SHADOW
+LIVE
+```
+
+Changing the runtime mode does **not** bypass the environment safety gate.
+
+Real execution still requires:
+
+```text
+GGS_LIVE_ENABLED=true
+```
+
+The default configuration keeps real trading disabled.
+
+---
+
+## Default Configuration
+
+The default environment is intentionally conservative:
+
+```env
+GGS_MODE=PAPER
+GGS_LIVE_ENABLED=false
+GGS_LIVE_WITHDRAWALS_ENABLED=false
+```
+
+Default application settings:
+
+```text
+Dashboard : http://127.0.0.1:6969
+Asset     : BTC
+Market    : BTC Up / Down
+Duration  : 5 minutes
+Payout    : 1.50x — 1.80x
+Martingale: OFF
+Exit      : Hold to resolution
+```
 
 ---
 
 ## MetaMask LIVE Setup
 
-The current LIVE connector is designed for a **MetaMask EOA** where the configured wallet address belongs to the configured private key.
+GGS can connect to a MetaMask EOA for authenticated Polymarket operations.
 
-### 1. Start GGS once
+### 1. Start GGS
 
-macOS/Linux:
+macOS / Linux:
 
 ```bash
 ./start.sh
 ```
 
-Windows:
+Windows PowerShell:
 
 ```powershell
 .\start.ps1
 ```
 
-This creates the virtual environment and installs dependencies.
+### 2. Configure LIVE
 
-### 2. Configure the signer locally
-
-**Never send your private key to Telegram, ChatGPT, GitHub, or a public log.**
-
-macOS/Linux:
+macOS / Linux:
 
 ```bash
 ./setup-live.sh
 ```
 
-Windows:
+Windows PowerShell:
 
 ```powershell
 .\setup-live.ps1
@@ -198,126 +244,145 @@ Windows:
 
 The setup asks for:
 
-```text
-MetaMask address
-MetaMask private key (hidden input)
-```
+- MetaMask wallet address
+- Private key
 
-GGS verifies locally that the private key belongs to the address and stores it only in the gitignored local `.env` file.
+The private key is entered locally and stored only in the gitignored `.env` file.
 
-The setup intentionally leaves:
+**Never commit `.env` to GitHub.**
+
+After setup, the default safety state remains:
 
 ```env
 GGS_LIVE_ENABLED=false
 GGS_LIVE_WITHDRAWALS_ENABLED=false
 ```
 
-### 3. Check LIVE connection
+### 3. Check LIVE Readiness
+
+macOS / Linux:
 
 ```bash
 ./live-check.sh
 ```
 
-or Windows:
+Windows PowerShell:
 
 ```powershell
 .\live-check.ps1
 ```
 
-Review wallet match, authenticated client status, collateral balance, and allowance readiness.
-
-If trading approvals are missing, they can be submitted explicitly:
+Optional approval setup:
 
 ```bash
 ./live-check.sh --approve
 ```
 
-For an EOA, this can broadcast Polygon approval transactions and may require network gas.
+Approval setup may broadcast an on-chain approval transaction and requires gas.
 
-### 4. Test READ-ONLY
+### 4. Validate the Runtime
 
-Telegram:
+Start with:
+
+```text
+PAPER
+```
+
+Then use Telegram:
 
 ```text
 /mode
 ```
 
-Then choose:
+Move to:
 
 ```text
-LIVE → READ ONLY
+LIVE READ-ONLY
 ```
 
-Confirm that the wallet shown by GGS matches your MetaMask address and the balance is correct.
-
-### 5. Test SHADOW
-
-Choose:
+Then:
 
 ```text
-LIVE → SHADOW
+LIVE SHADOW
 ```
 
-GGS will continue evaluating live markets but only record what it **would** submit.
-
-### 6. Enable real entries
-
-Only after READ-ONLY and SHADOW have been validated, change the local `.env`:
+Only after the live environment has been independently verified should real execution be enabled:
 
 ```env
 GGS_LIVE_ENABLED=true
 ```
 
-Restart GGS and select:
+Then select:
 
 ```text
-/mode → LIVE → LIVE REAL
+/mode → LIVE
 ```
-
-For the first real test, use a small Bet / Entry value from `/settings`.
 
 ---
 
-## LIVE Order Protection
+## Telegram Setup
 
-A valid strategy signal is not enough to force an order.
+GGS supports owner-only Telegram control.
 
-For every live BUY, GGS provides:
+### 1. Create a Telegram Bot
 
-```text
-amount     = configured Bet / Entry
-max_spend  = configured Bet / Entry
-max_price  = strategy decision entry price
-order_type = FAK
-```
+Open **BotFather** in Telegram:
 
-If acceptable liquidity is no longer available under the protected price, the order may be rejected or only fill according to the exchange's FAK behavior rather than intentionally chasing a worse price.
-
-Live order results are stored separately under `runtime/` and can include accepted/rejected status, order ID, fill amounts, trade IDs, and settlement transaction hashes returned by the SDK.
-
----
-
-## Telegram Owner Control
+https://t.me/BotFather
 
 Send:
+
+```text
+/newbot
+```
+
+Follow the instructions and copy the bot token provided by BotFather.
+
+Set it in `.env`:
+
+```env
+TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN
+```
+
+### 2. Get Telegram Owner ID / Chat ID
+
+Start a conversation with your bot and send:
 
 ```text
 /start
 ```
 
-Main panel:
+Then open the Telegram Bot API `getUpdates` endpoint using your bot token:
 
 ```text
-[ Status ]        [ Market ]
-[ Position ]      [ Performance ]
-[ Modules ]       [ Last Trade ]
-[ Balance ]       [ Withdrawal ]
-[ Pause ]         [ Resume ]
-[             MODE             ]
-[           SETTINGS           ]
+https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates
 ```
 
-GGS also registers a Telegram command menu automatically:
+Look for:
+
+```json
+"chat": {
+  "id": 123456789
+}
+```
+
+The number inside `chat.id` is your Telegram Owner ID / Chat ID.
+
+Set:
+
+```env
+TELEGRAM_OWNER_ID=123456789
+```
+
+Replace `123456789` with your actual Telegram ID.
+
+The owner ID is used to restrict control commands to the authorized Telegram account.
+
+---
+
+## Telegram Commands
+
+Available commands include:
 
 ```text
 /start
@@ -336,135 +401,127 @@ GGS also registers a Telegram command menu automatically:
 /help
 ```
 
-Monitoring pages use inline **Refresh** buttons that edit the existing message rather than spamming new messages.
+### `/mode`
+
+Switch between:
+
+```text
+PAPER
+LIVE READ-ONLY
+LIVE SHADOW
+LIVE
+```
 
 ### `/settings`
 
-Bet / Entry can be changed from Telegram:
+Controls trading settings such as Bet / Entry.
+
+Available choices:
 
 ```text
-[ $2 ] [ $4 ] [ $6 ]
-[ $8 ] [ $10 ] [ Custom ]
+$2
+$4
+$6
+$8
+$10
+Custom
 ```
 
-Changes apply to the **next entry** and do not resize an existing position.
+Changes apply to the next entry.
 
-Signal settings display the current payout range, confidence, edge, and market guards.
+Signal settings also display:
+
+- Payout
+- Confidence
+- Net edge
+- Market guards
+
+---
+
+## LIVE Order Protection
+
+LIVE REAL execution uses protected market-order parameters.
+
+Conceptually:
+
+```text
+amount     = configured Bet / Entry
+max_spend  = configured Bet / Entry
+max_price  = strategy decision entry price
+order_type = FAK
+```
+
+The order may be rejected if sufficient liquidity is not available under the protected price.
+
+Execution results are stored in the runtime state.
 
 ---
 
 ## Withdrawal
 
-Withdrawal is disabled unless all of these are true:
+Withdrawals are separately gated and disabled by default.
 
-```text
-Mode = LIVE
+Withdrawals require:
+
+```env
 GGS_LIVE_WITHDRAWALS_ENABLED=true
-Valid MetaMask signer
-Sufficient collateral balance
-Owner Telegram authorization
 ```
 
-Telegram flow:
+Additional requirements include:
+
+- LIVE mode
+- Valid signer
+- Sufficient collateral
+- Authorized Telegram owner
+- Explicit confirmation
+
+The Telegram withdrawal flow is:
 
 ```text
-Withdrawal
-    |
-Destination address
-    |
+Destination
+    ↓
 Amount
-    |
+    ↓
 Preview
-    |
-[ Confirm ] [ Cancel ]
+    ↓
+Confirm / Cancel
 ```
 
-The confirmation state expires and is cleared before transaction submission to reduce accidental duplicate execution.
-
-Withdrawal uses the configured Polymarket collateral token on Polygon and the authenticated local signer. Keep withdrawal disabled until real entry execution has been validated.
+Withdrawals are not part of normal trading execution.
 
 ---
 
 ## Dashboard
 
-Open:
+Dashboard:
 
 ```text
 http://127.0.0.1:6969
 ```
 
-The dashboard includes:
+The dashboard provides real-time visibility into:
 
 - Price To Beat
 - Actual BTC reference price
-- UP / DOWN ask
-- countdown
-- decision and reason
-- payout
-- confidence
-- net edge
-- momentum
-- execution tape
-- PAPER performance metrics
-- LIVE collateral balance when a LIVE mode is active
-- runtime activity bars
-
-Activity bars represent module activity level rather than decorative blinking.
-
----
-
-## Telegram Setup
-
-### 1. Create a bot
-
-Open **@BotFather** in Telegram:
-
-```text
-/newbot
-```
-
-Follow the prompts and copy the Bot Token.
-
-### 2. Get your Telegram User ID
-
-Send a message such as `/start` to your new bot, then run:
-
-```bash
-curl "https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates"
-```
-
-Find:
-
-```json
-"from": {
-  "id": 123456789
-}
-```
-
-Use that numeric value as `TELEGRAM_OWNER_ID`.
-
-### 3. Configure `.env`
-
-```bash
-cp .env.example .env
-```
-
-Set:
-
-```env
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_OWNER_ID=123456789
-```
-
-Restart GGS, then send `/start`.
-
-Only the configured Telegram owner ID is authorized for control callbacks.
+- UP ask
+- DOWN ask
+- Countdown
+- Decision
+- Decision reason
+- Payout
+- Confidence
+- Net edge
+- Momentum
+- Execution tape
+- PAPER metrics
+- LIVE collateral
+- Runtime activity
 
 ---
 
 ## Installation
 
-Clone:
+### Clone
 
 ```bash
 git clone https://github.com/cyberwolf69/GGS.git
@@ -473,187 +530,101 @@ cd GGS
 
 ### macOS / Linux
 
-Requires **Python 3.11+**.
-
 ```bash
-chmod +x start.sh stop.sh status.sh setup-live.sh live-check.sh
 ./start.sh
 ```
 
-Status:
-
-```bash
-./status.sh
-```
-
-Stop:
-
-```bash
-./stop.sh
-```
-
-### Windows PowerShell
-
-Requires **Python 3.11+**.
+### Windows
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass
 .\start.ps1
 ```
 
-Status:
+Dashboard:
 
-```powershell
-.\status.ps1
+```text
+http://127.0.0.1:6969
 ```
-
-Stop:
-
-```powershell
-.\stop.ps1
-```
-
-### Linux VPS
-
-```bash
-chmod +x deploy/*.sh
-sudo ./deploy/install-systemd.sh
-sudo systemctl status ggs
-```
-
-Logs:
-
-```bash
-journalctl -u ggs -f
-```
-
-The dashboard binds to localhost. To access it remotely without exposing port `6969` publicly:
-
-```bash
-ssh -L 6969:127.0.0.1:6969 user@YOUR_VPS_IP
-```
-
-Then open `http://127.0.0.1:6969` locally.
 
 ---
 
 ## Configuration
 
-Strategy defaults:
+Main configuration files:
 
 ```text
 config/paper.yaml
-```
-
-Runtime owner settings:
-
-```text
 runtime/settings.json
-```
-
-Secrets:
-
-```text
 .env
 ```
 
-`.env` and `runtime/` are ignored by Git.
-
-Important LIVE variables:
+Important environment variables:
 
 ```env
+GGS_MODE=PAPER
+GGS_PORT=6969
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_OWNER_ID=
+
 POLYMARKET_PRIVATE_KEY=
 POLYMARKET_WALLET_ADDRESS=
+
 GGS_LIVE_ENABLED=false
 GGS_LIVE_WITHDRAWALS_ENABLED=false
+
+POLYGON_RPC_URL=https://polygon.drpc.org
+CHAIN_ID=137
+
 POLYMARKET_COLLATERAL_TOKEN=0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB
+
+WITHDRAW_CONFIRM_TIMEOUT=60
+MAX_WITHDRAW_USD=500
 ```
 
-The official Polymarket SDK production environment supplies its Polygon chain and RPC configuration. `POLYGON_RPC_URL` in `.env.example` is reserved for a future custom-environment override and is not required by the current connector.
+Never commit real credentials, private keys, bot tokens, or `.env` files.
 
 ---
 
-## Project Structure
+## Safety
+
+GGS is designed around explicit execution gates.
+
+The default state is:
 
 ```text
-GGS/
-├── ggs/
-│   ├── market/
-│   ├── fusion/
-│   ├── risk/
-│   ├── paper/
-│   ├── live/
-│   ├── telegram/
-│   └── analytics/
-├── dashboard/
-├── config/
-├── deploy/
-├── tests/
-├── setup-live.sh
-├── live-check.sh
-├── start.sh
-├── stop.sh
-├── status.sh
-├── start.ps1
-├── stop.ps1
-├── status.ps1
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+PAPER
 ```
 
----
+Real trading requires the explicit environment gate:
 
-## GitHub Safety
-
-Before push:
-
-```bash
-git status --ignored
+```env
+GGS_LIVE_ENABLED=true
 ```
 
-Never commit:
+Real withdrawals require a separate gate:
 
-- `.env`
-- wallet private keys
-- Telegram Bot Token
-- local wallet/keystore files
-- runtime trading state containing sensitive data
-
-Relevant patterns are included in `.gitignore`.
-
----
-
-## Testing
-
-```bash
-pytest -q
+```env
+GGS_LIVE_WITHDRAWALS_ENABLED=true
 ```
 
-The local suite covers strategy gates, payout range, paper accounting, source lock, settings persistence, Telegram controls, and fail-closed LIVE behavior without requiring a funded wallet.
+Private keys and credentials must remain local and must never be committed to GitHub.
 
-Tests that would place real orders, approve tokens, or withdraw funds are **not** executed automatically.
-
----
-
-## Safety Notes
-
-- PAPER is the safe default.
-- LIVE READ-ONLY and SHADOW should be validated before LIVE REAL.
-- Private keys are accepted only through the local hidden-input setup script, never Telegram.
-- Real execution requires explicit `GGS_LIVE_ENABLED=true`.
-- Withdrawal requires a second explicit gate: `GGS_LIVE_WITHDRAWALS_ENABLED=true`.
-- Strategy payout is restricted to **1.50x–1.80x** effective payout.
-- A target win rate is not guaranteed by configuration.
+LIVE execution should only be enabled after the wallet, signer, collateral, approvals, market connectivity, and execution behavior have been independently verified.
 
 ---
 
 ## Disclaimer
 
-GGS is experimental trading infrastructure. Prediction markets and cryptocurrency trading involve financial risk. PAPER performance does not guarantee LIVE results, and real execution can differ because of liquidity, latency, fees, order rejection, partial fills, settlement behavior, and market conditions.
+GGS is experimental trading infrastructure for Polymarket prediction markets.
 
-Validate wallet configuration and use small amounts before increasing real exposure.
+Trading prediction markets involves financial risk. Market prices, liquidity, execution, network conditions, and model outputs can change rapidly.
+
+Nothing in this repository constitutes financial, investment, or trading advice.
+
+Use PAPER and READ-ONLY modes to validate the system before enabling real execution.
+
+The user is responsible for configuring, operating, and securing the system.
 
 ---
 
